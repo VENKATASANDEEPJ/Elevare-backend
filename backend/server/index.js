@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const authMiddleware = require("./middleware/authMiddleware");
+const userRoutes = require("./routes/userRoutes");
 
 const Goal = require("./models/Goal");
 const User = require("./models/User");
@@ -15,6 +16,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use("/api/users", userRoutes);
 
 /* ---------------- BASIC ROUTES ---------------- */
 
@@ -85,21 +87,24 @@ app.post("/auth/login", async (req, res) => {
 
 /* ---------------- CREATE ---------------- */
 
-app.post("/goals", async (req, res, next) => {
+app.post("/goals", authMiddleware, async (req, res, next) => {
   try {
-    const { title, description, targetDate, progress, streak, isCompleted } = req.body;
+    const userId = req.user.userId || req.user;
+    const { text, title, description, targetDate, progress, streak, completed } = req.body;
 
-    const goal = new Goal({
-      title,
+    const goal = await Goal.create({
+      user: userId,
+      text: text ?? title,
+      title: title ?? text,
       description,
       targetDate,
       progress,
       streak,
-      isCompleted,
+      completed,
+      completedAt: completed ? new Date() : null,
     });
 
-    const savedGoal = await goal.save();
-    res.status(201).json(savedGoal);
+    res.status(201).json(goal);
   } catch (error) {
     next(error);
   }
@@ -109,28 +114,96 @@ app.post("/goals", async (req, res, next) => {
 
 app.get("/goals", authMiddleware, async (req, res) => {
   try {
-    const goals = await Goal.find();
-    res.json(goals);
+    const goals = await Goal.find({ user: req.user.userId || req.user });
+    res.status(200).json(goals);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch goals" });
   }
 });
 
+app.get("/goals/progress", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user;
+    const total = await Goal.countDocuments({ user: userId });
+    const completed = await Goal.countDocuments({
+      user: userId,
+      completed: true,
+    });
+
+    const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+    res.status(200).json({
+      total,
+      completed,
+      percentage,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch goal progress" });
+  }
+});
+
 /* ---------------- UPDATE ---------------- */
 
-app.put("/goals/:id", async (req, res) => {
+app.put("/goals/:id", authMiddleware, async (req, res) => {
   try {
-    const updatedGoal = await Goal.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedGoal) {
-      return res.status(404).json({ error: "Goal not found" });
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) {
+      return res.status(404).json({ message: "Goal not found" });
     }
 
-    res.json(updatedGoal);
+    if (goal.user.toString() !== (req.user.userId || req.user).toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    if (req.body.completed === true && !goal.completed) {
+      goal.completed = true;
+      goal.completedAt = new Date();
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const user = await User.findById(req.user.userId || req.user);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
+
+      if (lastActive) {
+        lastActive.setHours(0, 0, 0, 0);
+      }
+
+      if (!lastActive) {
+        user.streak = 1;
+      } else {
+        const diffTime = today - lastActive;
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (diffDays === 1) {
+          user.streak += 1;
+        } else if (diffDays > 1) {
+          user.streak = 1;
+        }
+      }
+
+      if (user.streak > user.longestStreak) {
+        user.longestStreak = user.streak;
+      }
+
+      user.lastActiveDate = today;
+      await user.save();
+    }
+
+    if (req.body.completed === false) {
+      goal.completed = false;
+      goal.completedAt = null;
+    }
+
+    goal.text = req.body.text ?? goal.text;
+
+    await goal.save();
+
+    res.status(200).json(goal);
   } catch (error) {
     res.status(500).json({ error: "Failed to update goal" });
   }
@@ -138,15 +211,20 @@ app.put("/goals/:id", async (req, res) => {
 
 /* ---------------- DELETE ---------------- */
 
-app.delete("/goals/:id", async (req, res) => {
+app.delete("/goals/:id", authMiddleware, async (req, res) => {
   try {
-    const deletedGoal = await Goal.findByIdAndDelete(req.params.id);
-
-    if (!deletedGoal) {
-      return res.status(404).json({ error: "Goal not found" });
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) {
+      return res.status(404).json({ message: "Goal not found" });
     }
 
-    res.json({ message: "Goal deleted successfully" });
+    if (goal.user.toString() !== (req.user.userId || req.user).toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    await goal.deleteOne();
+
+    res.status(200).json({ message: "Goal removed" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete goal" });
   }
