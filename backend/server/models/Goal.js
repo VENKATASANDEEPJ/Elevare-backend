@@ -7,27 +7,48 @@ const goalSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
-    text: {
-      type: String,
-    },
     title: {
       type: String,
       required: true,
     },
     description: {
       type: String,
+      default: "",
     },
-    targetDate: {
+    category: {
+      type: String,
+      enum: ["Coding", "Fitness", "Language", "Reading", "Health", "Productivity", "Other"],
+      required: true,
+    },
+    targetDays: {
+      type: Number,
+      default: 30,
+    },
+    startDate: {
       type: Date,
       required: true,
     },
-    progress: {
+    currentStreak: {
       type: Number,
       default: 0,
     },
-    streak: {
+    longestStreak: {
       type: Number,
       default: 0,
+    },
+    completionHistory: [
+      {
+        date: Date,
+        completed: Boolean,
+      },
+    ],
+    reminderTime: {
+      type: String,
+      default: "09:00",
+    },
+    active: {
+      type: Boolean,
+      default: true,
     },
     completed: {
       type: Boolean,
