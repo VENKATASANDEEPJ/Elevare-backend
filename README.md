@@ -1,102 +1,157 @@
-# 🚀 Elevare — Goal & Streak Tracking SaaS
+# 🚀 Elevare — Smart Goal & Productivity Platform
 
-Elevare is a startup-grade productivity platform designed to track goals, streaks, and progress with secure multi-user architecture and scalable frontend-backend separation.
+Elevare is a full-stack productivity platform designed to help users set goals, stay consistent, and track progress with intelligent reminders and a clean user experience.
 
----
-
-## 🏗 Architecture
-
-Monorepo Structure:
-
-Elevare/
- ├── backend/   → Node.js + Express + MongoDB API
- └── Frontend/  → React (Vite) Client Application
+It focuses on transforming scattered intentions into structured, trackable outcomes.
 
 ---
 
-## 🔐 Backend Features (Production-Ready Core)
+# 🧠 Vision
 
-### ✅ Authentication System
-- User registration
-- Secure password hashing (bcrypt)
-- JWT-based authentication
-- Protected routes middleware
+Modern productivity tools are either too complex or too minimal.
+Elevare aims to strike the balance by providing:
 
-### ✅ Multi-User Data Isolation
-- Goals linked to specific users
-- Authorization checks on update/delete
-- Secure ownership validation
+* Clear goal tracking
+* Actionable progress visibility
+* Smart notifications
+* A distraction-free experience
 
-### ✅ Goal Management
-- Create goals
-- Update goals
-- Delete goals
-- Mark goals as completed
-- Completion timestamp tracking
-
-### ✅ Streak Engine (Completion-Based)
-- Streak increments only when a goal is completed
-- Daily activity tracking
-- Automatic streak reset on missed day
-- Longest streak tracking
-
-### ✅ Progress Analytics API
-- Total goals count
-- Completed goals count
-- Completion percentage endpoint
-
-### ✅ Profile Endpoint
-GET /api/users/me  
-Returns:
-- Current streak
-- Longest streak
-- Last active date
-- User information (without password)
+The long-term vision is to evolve Elevare into an **AI-assisted growth platform** that guides users toward consistent improvement.
 
 ---
 
-## 🛠 Tech Stack
+# ✨ Features
+
+## 🔐 Authentication
+
+* Secure user signup & login
+* Protected routes using JWT
+
+## 🎯 Goal Management
+
+* Create and manage goals
+* Track progress
+* Structured goal model
+
+## 🔔 Notifications
+
+* Reminder system foundation
+* Extensible notification model
+
+## 🖥️ Frontend Foundation
+
+* Modern React + TypeScript setup
+* Dashboard layout
+* Auth context integration
+
+---
+
+# 🏗️ Tech Stack
+
+## Backend
+
+* Node.js
+* Express.js
+* MongoDB
+* JWT Authentication
+
+## Frontend
+
+* React
+* TypeScript
+* Vite
+
+## Dev Tools
+
+* Git & GitHub
+* REST APIs
+
+---
+
+# 📂 Project Structure
+
+```
+Elevare
+ ├── backend
+ │   ├── controllers
+ │   ├── models
+ │   ├── routes
+ │   └── middleware
+ │
+ └── frontend
+     ├── components
+     ├── pages
+     ├── services
+     └── context
+```
+
+---
+
+# ⚙️ Getting Started
+
+## 1️⃣ Clone the repository
+
+```bash
+git clone https://github.com/VENKATASANDEEPJ/Elevare-backend.git
+cd Elevare-backend
+```
+
+## 2️⃣ Install dependencies
 
 ### Backend
-- Node.js
-- Express.js
-- MongoDB (Local, Atlas-ready)
-- Mongoose
-- JWT
-- Bcrypt
-- Nodemon
 
-### Frontend (In Progress)
-- React (Vite)
-- Planned: React Router
-- Planned: Protected routes
-- Planned: Dashboard analytics UI
+```bash
+cd backend
+npm install
+npm run dev
+```
 
----
+### Frontend
 
-## 📊 Current Project Status
-
-Backend Core: ✅ Complete  
-Security & Authorization: ✅ Complete  
-Streak System: ✅ Implemented  
-Progress Analytics: ✅ Implemented  
-Frontend UI: 🚧 Starting Next Phase  
-
-Overall Completion: ~55%
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
-## 🎯 Next Phase
+# 🛣️ Roadmap
 
-- React frontend architecture
-- Authentication UI
-- Dashboard interface
-- Protected client routes
-- Analytics visualization
-- Deployment (Render + Vercel)
-- MongoDB Atlas migration
+* UI theme redesign (story-driven interface)
+* Goal progress analytics
+* Smart reminders & scheduling
+* AI-powered suggestions
+* Deployment & live demo
 
 ---
 
-Built by Venkata Sandeep J  
-Startup-focused full-stack system design project.
+# 📌 Current Status
+
+🟢 Core backend modules implemented
+🟡 Frontend foundation in progress
+🔜 Feature polishing & UI improvements
+
+---
+
+# 🤝 Contributing
+
+This project is currently under active development.
+Contributions, suggestions, and feedback are welcome.
+
+---
+
+# 📜 License
+
+This project is open-source and available under the MIT License.
+
+---
+
+# 👨‍💻 Author
+
+**J Venkata Sandeep**
+Aspiring Software Engineer | Full-Stack Developer | Builder
+
+---
+
+⭐ If you like this project, consider giving it a star!
