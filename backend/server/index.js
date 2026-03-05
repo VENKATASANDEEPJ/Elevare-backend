@@ -6,43 +6,37 @@ const mongoose = require("mongoose");
 const userRoutes = require("./routes/userRoutes");
 const goalRoutes = require("./routes/goalRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const { sendError, sendSuccess } = require("./utils/response");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
 app.use("/api/users", userRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-/* ---------------- BASIC ROUTES ---------------- */
-
 app.get("/", (req, res) => {
-  res.json({ message: "Elevare API Running" });
+  return sendSuccess(res, 200, "Elevare API running", { status: "ok" });
 });
 
 app.get("/check", (req, res) => {
-  res.json({ status: "API working correctly" });
+  return sendSuccess(res, 200, "API working correctly", { status: "ok" });
 });
-
-/* ---------------- ERROR HANDLER ---------------- */
 
 app.use((err, req, res, next) => {
-  if (res.headersSent) return next(err);
-
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      error: "Validation failed",
-      details: err.message,
-    });
+  if (res.headersSent) {
+    return next(err);
   }
 
-  console.error("Unhandled error:", err);
-  return res.status(500).json({ error: "Internal server error" });
-});
+  if (err.name === "ValidationError") {
+    return sendError(res, 400, "Validation failed", { details: err.message });
+  }
 
-/* ---------------- SERVER START ---------------- */
+  return sendError(res, 500, "Internal server error");
+});
 
 async function startServer() {
   try {

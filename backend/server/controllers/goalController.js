@@ -1,183 +1,371 @@
+const mongoose = require("mongoose");
 const Goal = require("../models/Goal");
-const User = require("../models/User");
 const Notification = require("../models/Notification");
+const { sendError, sendSuccess } = require("../utils/response");
 
-// CREATE GOAL
+const CATEGORIES = [
+  "Coding",
+  "Fitness",
+  "Language",
+  "Reading",
+  "Health",
+  "Productivity",
+  "Other",
+];
+
+const normalizeDate = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const getWeekKey = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const oneJan = new Date(d.getFullYear(), 0, 1);
+  const week = Math.ceil(((d - oneJan) / 86400000 + oneJan.getDay() + 1) / 7);
+  return `${year}-W${week}`;
+};
+
+const getPreviousDateKey = (date) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+};
+
+const getPreviousWeekKey = (date) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() - 7);
+  return getWeekKey(d);
+};
+
+const isValidObjectId = (value) => mongoose.Types.ObjectId.isValid(value);
+
+const parseTime = (value) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(value);
+
 const createGoal = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const { title, description, category, targetDays, reminderTime } = req.body;
-
-    const goal = await Goal.create({
-      user: userId,
+    const userId = req.user?.userId;
+    const {
       title,
       description,
       category,
+      frequencyType = "daily",
+      requiredCount = 1,
+      targetDays = 30,
+      reminderTime = "09:00",
+      startDate,
+    } = req.body || {};
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
+    if (typeof title !== "string" || !title.trim()) {
+      return sendError(res, 400, "Title is required");
+    }
+
+    if (!CATEGORIES.includes(category)) {
+      return sendError(res, 400, "Category is invalid");
+    }
+
+    if (!["daily", "weekly"].includes(frequencyType)) {
+      return sendError(res, 400, "Frequency type must be daily or weekly");
+    }
+
+    if (!Number.isInteger(requiredCount) || requiredCount < 1) {
+      return sendError(res, 400, "Required count must be a positive integer");
+    }
+
+    if (!Number.isInteger(targetDays) || targetDays < 1) {
+      return sendError(res, 400, "Target days must be a positive integer");
+    }
+
+    if (typeof reminderTime !== "string" || !parseTime(reminderTime)) {
+      return sendError(res, 400, "Reminder time must be HH:MM format");
+    }
+
+    const parsedStartDate = startDate ? new Date(startDate) : new Date();
+
+    if (Number.isNaN(parsedStartDate.getTime())) {
+      return sendError(res, 400, "Start date is invalid");
+    }
+
+    const goal = await Goal.create({
+      user: userId,
+      title: title.trim(),
+      description: typeof description === "string" ? description.trim() : "",
+      category,
+      frequencyType,
+      requiredCount,
       targetDays,
       reminderTime,
-      startDate: new Date(),
+      startDate: parsedStartDate,
       completionHistory: [],
     });
 
-    res.status(201).json(goal);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create goal" });
+    return sendSuccess(res, 201, "Goal created", goal);
+  } catch {
+    return sendError(res, 500, "Failed to create goal");
   }
 };
 
-// GET ALL GOALS FOR USER
 const getGoals = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
     const goals = await Goal.find({ user: userId }).sort({ createdAt: -1 });
-    res.status(200).json(goals);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch goals" });
+    return sendSuccess(res, 200, "Goals fetched", goals);
+  } catch {
+    return sendError(res, 500, "Failed to fetch goals");
   }
 };
 
-// GET SINGLE GOAL
 const getGoalById = async (req, res) => {
   try {
-    const goal = await Goal.findById(req.params.id);
-    if (!goal) {
-      return res.status(404).json({ message: "Goal not found" });
+    const userId = req.user?.userId;
+    const goalId = req.params.id;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
     }
 
-    if (goal.user.toString() !== req.user.userId.toString()) {
-      return res.status(401).json({ message: "Not authorized" });
+    if (!isValidObjectId(goalId)) {
+      return sendError(res, 400, "Invalid goal id");
     }
 
-    res.status(200).json(goal);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch goal" });
-  }
-};
-
-// UPDATE GOAL
-const updateGoal = async (req, res) => {
-  try {
-    const goal = await Goal.findById(req.params.id);
-    if (!goal) {
-      return res.status(404).json({ message: "Goal not found" });
-    }
-
-    if (goal.user.toString() !== req.user.userId.toString()) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
-    const { title, description, category, targetDays, reminderTime, active } = req.body;
-
-    if (title) goal.title = title;
-    if (description !== undefined) goal.description = description;
-    if (category) goal.category = category;
-    if (targetDays) goal.targetDays = targetDays;
-    if (reminderTime) goal.reminderTime = reminderTime;
-    if (active !== undefined) goal.active = active;
-
-    await goal.save();
-    res.status(200).json(goal);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to update goal" });
-  }
-};
-
-// DELETE GOAL
-const deleteGoal = async (req, res) => {
-  try {
-    const goal = await Goal.findById(req.params.id);
-    if (!goal) {
-      return res.status(404).json({ message: "Goal not found" });
-    }
-
-    if (goal.user.toString() !== req.user.userId.toString()) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
-
-    await goal.deleteOne();
-    res.status(200).json({ message: "Goal deleted" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete goal" });
-  }
-};
-
-// MARK GOAL COMPLETE FOR TODAY
-const completeGoalToday = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const goal = await Goal.findById(req.params.id);
+    const goal = await Goal.findById(goalId);
 
     if (!goal) {
-      return res.status(404).json({ message: "Goal not found" });
+      return sendError(res, 404, "Goal not found");
     }
 
     if (goal.user.toString() !== userId.toString()) {
-      return res.status(401).json({ message: "Not authorized" });
+      return sendError(res, 403, "Not authorized");
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    return sendSuccess(res, 200, "Goal fetched", goal);
+  } catch {
+    return sendError(res, 500, "Failed to fetch goal");
+  }
+};
 
-    // Check if already completed today
-    const completedToday = goal.completionHistory.find((entry) => {
-      const entryDate = new Date(entry.date);
-      entryDate.setHours(0, 0, 0, 0);
-      return entryDate.getTime() === today.getTime();
-    });
+const updateGoal = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const goalId = req.params.id;
+    const {
+      title,
+      description,
+      category,
+      frequencyType,
+      requiredCount,
+      targetDays,
+      reminderTime,
+      active,
+    } = req.body || {};
 
-    if (completedToday && completedToday.completed) {
-      return res.status(400).json({ message: "Goal already completed today" });
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
     }
 
-    // Add completion entry
+    if (!isValidObjectId(goalId)) {
+      return sendError(res, 400, "Invalid goal id");
+    }
+
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      return sendError(res, 404, "Goal not found");
+    }
+
+    if (goal.user.toString() !== userId.toString()) {
+      return sendError(res, 403, "Not authorized");
+    }
+
+    if (title !== undefined) {
+      if (typeof title !== "string" || !title.trim()) {
+        return sendError(res, 400, "Title must be a non-empty string");
+      }
+      goal.title = title.trim();
+    }
+
+    if (description !== undefined) {
+      if (typeof description !== "string") {
+        return sendError(res, 400, "Description must be a string");
+      }
+      goal.description = description.trim();
+    }
+
+    if (category !== undefined) {
+      if (!CATEGORIES.includes(category)) {
+        return sendError(res, 400, "Category is invalid");
+      }
+      goal.category = category;
+    }
+
+    if (frequencyType !== undefined) {
+      if (!["daily", "weekly"].includes(frequencyType)) {
+        return sendError(res, 400, "Frequency type must be daily or weekly");
+      }
+      goal.frequencyType = frequencyType;
+    }
+
+    if (requiredCount !== undefined) {
+      if (!Number.isInteger(requiredCount) || requiredCount < 1) {
+        return sendError(res, 400, "Required count must be a positive integer");
+      }
+      goal.requiredCount = requiredCount;
+    }
+
+    if (targetDays !== undefined) {
+      if (!Number.isInteger(targetDays) || targetDays < 1) {
+        return sendError(res, 400, "Target days must be a positive integer");
+      }
+      goal.targetDays = targetDays;
+    }
+
+    if (reminderTime !== undefined) {
+      if (typeof reminderTime !== "string" || !parseTime(reminderTime)) {
+        return sendError(res, 400, "Reminder time must be HH:MM format");
+      }
+      goal.reminderTime = reminderTime;
+    }
+
+    if (active !== undefined) {
+      if (typeof active !== "boolean") {
+        return sendError(res, 400, "Active must be a boolean");
+      }
+      goal.active = active;
+    }
+
+    await goal.save();
+    return sendSuccess(res, 200, "Goal updated", goal);
+  } catch {
+    return sendError(res, 500, "Failed to update goal");
+  }
+};
+
+const deleteGoal = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const goalId = req.params.id;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
+    if (!isValidObjectId(goalId)) {
+      return sendError(res, 400, "Invalid goal id");
+    }
+
+    const goal = await Goal.findById(goalId);
+
+    if (!goal) {
+      return sendError(res, 404, "Goal not found");
+    }
+
+    if (goal.user.toString() !== userId.toString()) {
+      return sendError(res, 403, "Not authorized");
+    }
+
+    await goal.deleteOne();
+    return sendSuccess(res, 200, "Goal deleted");
+  } catch {
+    return sendError(res, 500, "Failed to delete goal");
+  }
+};
+
+const completeGoal = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const goalId = req.params.id;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
+    if (!isValidObjectId(goalId)) {
+      return sendError(res, 400, "Invalid goal id");
+    }
+
+    const goal = await Goal.findOne({ _id: goalId, user: userId });
+
+    if (!goal) {
+      return sendError(res, 404, "Goal not found");
+    }
+
+    const today = normalizeDate(new Date());
+    const currentPeriodKey =
+      goal.frequencyType === "daily" ? today.toISOString().split("T")[0] : getWeekKey(today);
+
+    if (goal.lastPeriodKey === currentPeriodKey) {
+      return sendError(res, 400, "Already completed for this period");
+    }
+
+    if (goal.lastPeriodKey) {
+      const expectedPreviousPeriod =
+        goal.frequencyType === "daily" ? getPreviousDateKey(today) : getPreviousWeekKey(today);
+
+      if (goal.lastPeriodKey !== expectedPreviousPeriod) {
+        goal.currentStreak = 0;
+      }
+    }
+
     goal.completionHistory.push({
       date: today,
       completed: true,
     });
 
-    // Calculate streak
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+    let completionCount = 0;
 
-    const completedYesterday = goal.completionHistory.find((entry) => {
-      const entryDate = new Date(entry.date);
-      entryDate.setHours(0, 0, 0, 0);
-      return entryDate.getTime() === yesterday.getTime() && entry.completed;
-    });
-
-    if (completedYesterday) {
-      goal.currentStreak += 1;
+    if (goal.frequencyType === "daily") {
+      completionCount = 1;
     } else {
-      goal.currentStreak = 1;
+      completionCount = goal.completionHistory.filter((entry) => {
+        return getWeekKey(entry.date) === currentPeriodKey;
+      }).length;
     }
 
-    if (goal.currentStreak > goal.longestStreak) {
-      goal.longestStreak = goal.currentStreak;
+    if (completionCount >= goal.requiredCount) {
+      goal.currentStreak += 1;
+
+      if (goal.currentStreak > goal.longestStreak) {
+        goal.longestStreak = goal.currentStreak;
+      }
+
+      goal.lastPeriodKey = currentPeriodKey;
     }
 
     await goal.save();
 
-    // Create notification for milestone
-    if (goal.currentStreak % 7 === 0) {
+    if (goal.currentStreak > 0 && goal.currentStreak % 7 === 0) {
       await Notification.create({
         user: userId,
         goal: goal._id,
-        message: `🔥 ${goal.currentStreak}-day streak on "${goal.title}"!`,
+        message: `${goal.currentStreak}-day streak on \"${goal.title}\"`,
         type: "milestone",
       });
     }
 
-    res.status(200).json(goal);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to complete goal" });
+    return sendSuccess(res, 200, "Goal completion recorded", goal);
+  } catch {
+    return sendError(res, 500, "Failed to complete goal");
   }
 };
 
-// GET COMPLETION STATS
 const getCompletionStats = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
     const goals = await Goal.find({ user: userId });
 
     const totalGoals = goals.length;
@@ -198,36 +386,39 @@ const getCompletionStats = async (req, res) => {
       }).length;
     });
 
-    const highestStreak = Math.max(...goals.map((g) => g.longestStreak), 0);
+    const highestStreak = Math.max(...goals.map((g) => g.longestStreak || 0), 0);
 
-    res.status(200).json({
+    return sendSuccess(res, 200, "Completion stats fetched", {
       totalGoals,
       activeGoals,
       totalCompletions,
       thisMonthCompletions,
       highestStreak,
     });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch stats" });
+  } catch {
+    return sendError(res, 500, "Failed to fetch stats");
   }
 };
 
-// GET WEEKLY PROGRESS
 const getWeeklyProgress = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const goals = await Goal.find({ user: userId, active: true });
+    const userId = req.user?.userId;
 
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
+    const goals = await Goal.find({ user: userId, active: true });
     const weekData = [];
     const today = new Date();
 
-    for (let i = 6; i >= 0; i--) {
+    for (let i = 6; i >= 0; i -= 1) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
 
       let completedCount = 0;
-      const totalGoals = goals.length;
+      const total = goals.length;
 
       goals.forEach((goal) => {
         const completed = goal.completionHistory.find((entry) => {
@@ -244,14 +435,14 @@ const getWeeklyProgress = async (req, res) => {
       weekData.push({
         date: date.toISOString().split("T")[0],
         completed: completedCount,
-        total: totalGoals,
-        percentage: totalGoals === 0 ? 0 : Math.round((completedCount / totalGoals) * 100),
+        total,
+        percentage: total === 0 ? 0 : Math.round((completedCount / total) * 100),
       });
     }
 
-    res.status(200).json(weekData);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch weekly progress" });
+    return sendSuccess(res, 200, "Weekly progress fetched", weekData);
+  } catch {
+    return sendError(res, 500, "Failed to fetch weekly progress");
   }
 };
 
@@ -261,7 +452,7 @@ module.exports = {
   getGoalById,
   updateGoal,
   deleteGoal,
-  completeGoalToday,
+  completeGoal,
   getCompletionStats,
   getWeeklyProgress,
 };

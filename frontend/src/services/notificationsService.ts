@@ -1,59 +1,47 @@
-const API_URL = "http://localhost:5000/api/notifications";
+import { apiRequest } from "./apiClient";
+
+export interface NotificationItem {
+  _id: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 const notificationsService = {
-  async getAllNotifications(token: string) {
-    const response = await fetch(API_URL, {
+  getAllNotifications(token?: string) {
+    return apiRequest<NotificationItem[]>("/notifications", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to fetch notifications");
-    return response.json();
   },
 
-  async getUnreadCount(token: string) {
-    const response = await fetch(`${API_URL}/unread/count`, {
+  getUnreadCount(token?: string) {
+    return apiRequest<{ unreadCount: number }>("/notifications/unread/count", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to fetch unread count");
-    return response.json();
   },
 
-  async markAsRead(token: string, notificationId: string) {
-    const response = await fetch(`${API_URL}/${notificationId}/read`, {
+  markAsRead(notificationId: string, token?: string) {
+    return apiRequest<NotificationItem>(`/notifications/${notificationId}/read`, {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to mark notification as read");
-    return response.json();
   },
 
-  async markAllAsRead(token: string) {
-    const response = await fetch(`${API_URL}/read/all`, {
+  markAllAsRead(token?: string) {
+    return apiRequest<{ message: string }>("/notifications/read/all", {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to mark all as read");
-    return response.json();
   },
 
-  async deleteNotification(token: string, notificationId: string) {
-    const response = await fetch(`${API_URL}/${notificationId}`, {
+  deleteNotification(notificationId: string, token?: string) {
+    return apiRequest<{ message: string }>(`/notifications/${notificationId}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to delete notification");
-    return response.json();
   },
 };
 

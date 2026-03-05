@@ -1,98 +1,114 @@
-const API_URL = "http://localhost:5000/api/goals";
+import { apiRequest } from "./apiClient";
+
+export interface GoalCompletionEntry {
+  date: string;
+  completed: boolean;
+}
+
+export interface Goal {
+  _id: string;
+  title: string;
+  description?: string;
+  category: string;
+  currentStreak: number;
+  longestStreak: number;
+  completionHistory: GoalCompletionEntry[];
+  frequencyType: "daily" | "weekly";
+  requiredCount: number;
+}
+
+export interface CreateGoalPayload {
+  title: string;
+  description?: string;
+  category: "Coding" | "Fitness" | "Language" | "Reading" | "Health" | "Productivity" | "Other";
+  frequencyType: "daily" | "weekly";
+  requiredCount: number;
+  startDate?: string;
+  targetDays?: number;
+  reminderTime?: string;
+}
+
+export interface UpdateGoalPayload {
+  title?: string;
+  description?: string;
+  category?: CreateGoalPayload["category"];
+  frequencyType?: "daily" | "weekly";
+  requiredCount?: number;
+  active?: boolean;
+}
+
+export interface GoalStats {
+  totalGoals: number;
+  activeGoals: number;
+  totalCompletions: number;
+  thisMonthCompletions: number;
+  highestStreak: number;
+}
+
+export interface WeeklyProgressItem {
+  date: string;
+  completed: number;
+  total: number;
+  percentage: number;
+}
 
 const goalsService = {
-  async getAllGoals(token: string) {
-    const response = await fetch(API_URL, {
+  getAllGoals(token?: string) {
+    return apiRequest<Goal[]>("/goals", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to fetch goals");
-    return response.json();
   },
 
-  async createGoal(
-    token: string,
-    goal: {
-      title: string;
-      description: string;
-      category: string;
-      targetDays: number;
-      reminderTime?: string;
-    }
-  ) {
-    const response = await fetch(API_URL, {
+  getGoalById(goalId: string, token?: string) {
+    return apiRequest<Goal>(`/goals/${goalId}`, {
+      method: "GET",
+      token,
+    });
+  },
+
+  createGoal(goalPayload: CreateGoalPayload, token?: string) {
+    return apiRequest<Goal>("/goals", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(goal),
+      token,
+      body: JSON.stringify(goalPayload),
     });
-    if (!response.ok) throw new Error("Failed to create goal");
-    return response.json();
   },
 
-  async updateGoal(
-    token: string,
-    goalId: string,
-    updates: Record<string, unknown>
-  ) {
-    const response = await fetch(`${API_URL}/${goalId}`, {
+  updateGoal(goalId: string, updates: UpdateGoalPayload, token?: string) {
+    return apiRequest<Goal>(`/goals/${goalId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      token,
       body: JSON.stringify(updates),
     });
-    if (!response.ok) throw new Error("Failed to update goal");
-    return response.json();
   },
 
-  async deleteGoal(token: string, goalId: string) {
-    const response = await fetch(`${API_URL}/${goalId}`, {
+  deleteGoal(goalId: string, token?: string) {
+    return apiRequest<{ message: string }>(`/goals/${goalId}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to delete goal");
-    return response.json();
   },
 
-  async completeGoalToday(token: string, goalId: string) {
-    const response = await fetch(`${API_URL}/${goalId}/complete`, {
+  completeGoal(goalId: string, token?: string) {
+    return apiRequest<Goal>(`/goals/${goalId}/complete`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to complete goal");
-    return response.json();
   },
 
-  async getCompletionStats(token: string) {
-    const response = await fetch(`${API_URL}/stats/completion`, {
+  getCompletionStats(token?: string) {
+    return apiRequest<GoalStats>("/goals/stats/completion", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to fetch completion stats");
-    return response.json();
   },
 
-  async getWeeklyProgress(token: string) {
-    const response = await fetch(`${API_URL}/stats/weekly`, {
+  getWeeklyProgress(token?: string) {
+    return apiRequest<WeeklyProgressItem[]>("/goals/stats/weekly", {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      token,
     });
-    if (!response.ok) throw new Error("Failed to fetch weekly progress");
-    return response.json();
   },
 };
 

@@ -7,53 +7,94 @@ const goalSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
+
     title: {
       type: String,
       required: true,
     },
+
     description: {
       type: String,
       default: "",
     },
+
     category: {
       type: String,
-      enum: ["Coding", "Fitness", "Language", "Reading", "Health", "Productivity", "Other"],
+      enum: [
+        "Coding",
+        "Fitness",
+        "Language",
+        "Reading",
+        "Health",
+        "Productivity",
+        "Other",
+      ],
       required: true,
     },
+
+    // 🔥 NEW — Frequency System
+    frequencyType: {
+      type: String,
+      enum: ["daily", "weekly"],
+      default: "daily",
+    },
+
+    requiredCount: {
+      type: Number,
+      default: 1,
+    },
+
     targetDays: {
       type: Number,
       default: 30,
     },
+
     startDate: {
       type: Date,
       required: true,
     },
+
     currentStreak: {
       type: Number,
       default: 0,
     },
+
     longestStreak: {
       type: Number,
       default: 0,
     },
+
+    lastCompletedDate: {
+      type: Date,
+    },
+
+    // 🔥 NEW — Track period to prevent double streak increment
+    lastPeriodKey: {
+      type: String,
+    },
+
     completionHistory: [
       {
         date: Date,
         completed: Boolean,
       },
     ],
+
     reminderTime: {
       type: String,
       default: "09:00",
     },
+
     active: {
       type: Boolean,
       default: true,
     },
+
     completed: {
       type: Boolean,
       default: false,
     },
+
     completedAt: {
       type: Date,
     },

@@ -1,77 +1,101 @@
-const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { sendError, sendSuccess } = require("../utils/response");
 
-// REGISTER
+const isEmail = (value) =>
+  typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
 const registerUser = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const userExists = await User.findOne({ email });
+    const { email, password } = req.body || {};
+
+    if (!isEmail(email)) {
+      return sendError(res, 400, "A valid email is required");
+    }
+
+    if (typeof password !== "string" || password.length < 6) {
+      return sendError(res, 400, "Password must be at least 6 characters");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const userExists = await User.findOne({ email: normalizedEmail });
 
     if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+      return sendError(res, 409, "User already exists");
     }
 
     const user = await User.create({
-      email,
+      email: normalizedEmail,
       password,
     });
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    if (!process.env.JWT_SECRET) {
+      return sendError(res, 500, "Server auth configuration is invalid");
+    }
 
-    res.status(201).json({
-      token,
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
     });
-  } catch (error) {
-    res.status(500).json({ message: "Registration failed" });
+
+    return sendSuccess(res, 201, "Registration successful", { token });
+  } catch {
+    return sendError(res, 500, "Registration failed");
   }
 };
 
-// LOGIN
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
   try {
-    const user = await User.findOne({ email });
+    const { email, password } = req.body || {};
+
+    if (!isEmail(email) || typeof password !== "string") {
+      return sendError(res, 400, "Email and password are required");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return sendError(res, 401, "Invalid credentials");
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return sendError(res, 401, "Invalid credentials");
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    if (!process.env.JWT_SECRET) {
+      return sendError(res, 500, "Server auth configuration is invalid");
+    }
 
-    res.status(200).json({
-      token,
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
     });
-  } catch (error) {
-    res.status(500).json({ message: "Login failed" });
+
+    return sendSuccess(res, 200, "Login successful", { token });
+  } catch {
+    return sendError(res, 500, "Login failed");
   }
 };
 
-// GET PROFILE
 const getMe = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return sendError(res, 401, "Unauthorized");
+    }
+
     const user = await User.findById(userId).select("-password");
 
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch user profile" });
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    return sendSuccess(res, 200, "Profile fetched", user);
+  } catch {
+    return sendError(res, 500, "Failed to fetch user profile");
   }
 };
 

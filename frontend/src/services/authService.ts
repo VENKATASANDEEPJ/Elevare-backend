@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/users/";
+import { apiRequest } from "./apiClient";
 
 export interface UserProfile {
   _id: string;
@@ -10,37 +10,33 @@ export interface UserProfile {
   updatedAt?: string;
 }
 
-export async function loginUser(email: string, password: string) {
-  const response = await fetch(`${API_URL}login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || "Login failed");
-  }
-
-  return data;
+export interface AuthPayload {
+  token: string;
 }
 
-export async function getMe(token: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}me`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+export async function registerUser(
+  email: string,
+  password: string,
+  name?: string
+): Promise<AuthPayload> {
+  return apiRequest<AuthPayload>("/users/register", {
+    method: "POST",
+    requiresAuth: false,
+    body: JSON.stringify({ email, password, name }),
   });
+}
 
-  const data = await response.json();
+export async function loginUser(email: string, password: string): Promise<AuthPayload> {
+  return apiRequest<AuthPayload>("/users/login", {
+    method: "POST",
+    requiresAuth: false,
+    body: JSON.stringify({ email, password }),
+  });
+}
 
-  if (!response.ok) {
-    throw new Error(data.message || data.error || "Failed to fetch profile");
-  }
-
-  return data as UserProfile;
+export async function getMe(token?: string): Promise<UserProfile> {
+  return apiRequest<UserProfile>("/users/me", {
+    method: "GET",
+    token,
+  });
 }

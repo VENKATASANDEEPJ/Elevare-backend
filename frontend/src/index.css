@@ -25,3 +25,87 @@ a {
 button {
   font: inherit;
 }
+
+.btn-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(360px, calc(100% - 24px));
+}
+
+.toast {
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: slideIn 0.2s ease-out;
+}
+
+.toast-success {
+  background: #15803d;
+}
+
+.toast-error {
+  background: #b91c1c;
+}
+
+.toast-info {
+  background: #1d4ed8;
+}
+
+.error-boundary {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: #0f0f14;
+  color: #f5f5f5;
+  padding: 24px;
+}
+
+.error-boundary h1 {
+  margin: 0 0 8px;
+}
+
+.error-boundary p {
+  margin: 0;
+  color: #c7c7d1;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

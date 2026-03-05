@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { getMe, type UserProfile } from "../services/authService";
+import { registerUnauthorizedHandler } from "../utils/authEvents";
 import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -14,15 +15,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }, []);
 
-  const hydrateAuth = useCallback(
-    async (nextToken: string) => {
-      const profile = await getMe(nextToken);
-      localStorage.setItem("token", nextToken);
-      setToken(nextToken);
-      setUser(profile);
+  const handleSessionExpiry = useCallback(
+    (message?: string) => {
+      clearAuth();
+      localStorage.setItem(
+        "session_expired_message",
+        message || "Session expired. Please log in again."
+      );
     },
-    []
+    [clearAuth]
   );
+
+  const hydrateAuth = useCallback(async (nextToken: string) => {
+    const profile = await getMe(nextToken);
+    localStorage.setItem("token", nextToken);
+    setToken(nextToken);
+    setUser(profile);
+  }, []);
+
+  useEffect(() => {
+    registerUnauthorizedHandler(handleSessionExpiry);
+
+    return () => {
+      registerUnauthorizedHandler(null);
+    };
+  }, [handleSessionExpiry]);
 
   useEffect(() => {
     let active = true;
@@ -55,20 +72,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearAuth]);
 
-  const login = useCallback(
-    async (nextToken: string) => {
-      setLoading(true);
-      try {
-        await hydrateAuth(nextToken);
-      } catch {
-        clearAuth();
-        throw new Error("Authentication failed");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [clearAuth, hydrateAuth]
-  );
+  const login = useCallback(async (nextToken: string) => {
+    setLoading(true);
+
+    try {
+      await hydrateAuth(nextToken);
+    } catch {
+      clearAuth();
+      throw new Error("Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  }, [clearAuth, hydrateAuth]);
 
   const logout = useCallback(() => {
     clearAuth();

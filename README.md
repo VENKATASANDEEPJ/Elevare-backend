@@ -8,13 +8,13 @@ It focuses on transforming scattered intentions into structured, trackable outco
 
 # 🧠 Vision
 
-Modern productivity tools are either too complex or too minimal.
+Modern productivity tools are either too complex or too minimal.  
 Elevare aims to strike the balance by providing:
 
-* Clear goal tracking
-* Actionable progress visibility
-* Smart notifications
-* A distraction-free experience
+- Clear goal tracking
+- Actionable progress visibility
+- Smart notifications
+- A distraction-free experience
 
 The long-term vision is to evolve Elevare into an **AI-assisted growth platform** that guides users toward consistent improvement.
 
@@ -24,25 +24,27 @@ The long-term vision is to evolve Elevare into an **AI-assisted growth platform*
 
 ## 🔐 Authentication
 
-* Secure user signup & login
-* Protected routes using JWT
+- Secure user signup & login
+- JWT-based authentication
+- Protected routes
 
 ## 🎯 Goal Management
 
-* Create and manage goals
-* Track progress
-* Structured goal model
+- Create and manage goals
+- Track progress
+- Streak tracking
+- Completion history
 
 ## 🔔 Notifications
 
-* Reminder system foundation
-* Extensible notification model
+- Reminder system foundation
+- Extensible notification model
 
-## 🖥️ Frontend Foundation
+## 🖥️ Frontend
 
-* Modern React + TypeScript setup
-* Dashboard layout
-* Auth context integration
+- React + TypeScript
+- Dashboard UI
+- Context-based authentication state
 
 ---
 
@@ -50,108 +52,30 @@ The long-term vision is to evolve Elevare into an **AI-assisted growth platform*
 
 ## Backend
 
-* Node.js
-* Express.js
-* MongoDB
-* JWT Authentication
+- Node.js
+- Express.js
+- MongoDB (MongoDB Atlas)
+- JWT Authentication
 
 ## Frontend
 
-* React
-* TypeScript
-* Vite
+- React
+- TypeScript
+- Vite
 
 ## Dev Tools
 
-* Git & GitHub
-* REST APIs
+- Git & GitHub
+- REST APIs
+- MongoDB Compass
 
 ---
 
-# 📂 Project Structure
+# ⚙️ Configuration
 
-```
-Elevare
- ├── backend
- │   ├── controllers
- │   ├── models
- │   ├── routes
- │   └── middleware
- │
- └── frontend
-     ├── components
-     ├── pages
-     ├── services
-     └── context
-```
+## Frontend Environment
 
----
+Create a `.env` file inside **frontend/**
 
-# ⚙️ Getting Started
-
-## 1️⃣ Clone the repository
-
-```bash
-git clone https://github.com/VENKATASANDEEPJ/Elevare-backend.git
-cd Elevare-backend
-```
-
-## 2️⃣ Install dependencies
-
-### Backend
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-# 🛣️ Roadmap
-
-* UI theme redesign (story-driven interface)
-* Goal progress analytics
-* Smart reminders & scheduling
-* AI-powered suggestions
-* Deployment & live demo
-
----
-
-# 📌 Current Status
-
-🟢 Core backend modules implemented
-🟡 Frontend foundation in progress
-🔜 Feature polishing & UI improvements
-
----
-
-# 🤝 Contributing
-
-This project is currently under active development.
-Contributions, suggestions, and feedback are welcome.
-
----
-
-# 📜 License
-
-This project is open-source and available under the MIT License.
-
----
-
-# 👨‍💻 Author
-
-**J Venkata Sandeep**
-Aspiring Software Engineer | Full-Stack Developer | Builder
-
----
-
-⭐ If you like this project, consider giving it a star!
+```env
+VITE_API_BASE_URL=http://localhost:5000/api

@@ -1,31 +1,18 @@
 const express = require("express");
-const authMiddleware = require("../middleware/authMiddleware");
-const {
-  createGoal,
-  getGoals,
-  getGoalById,
-  updateGoal,
-  deleteGoal,
-  completeGoalToday,
-  getCompletionStats,
-  getWeeklyProgress,
-} = require("../controllers/goalController");
+const protect = require("../middleware/authMiddleware");
+const goalController = require("../controllers/goalController");
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authMiddleware);
+router.use(protect);
 
-// Goal CRUD routes
-router.post("/", createGoal);
-router.get("/", getGoals);
-router.get("/stats/completion", getCompletionStats);
-router.get("/stats/weekly", getWeeklyProgress);
-router.get("/:id", getGoalById);
-router.put("/:id", updateGoal);
-router.delete("/:id", deleteGoal);
-
-// Streak tracking route
-router.post("/:id/complete", completeGoalToday);
+router.post("/", goalController.createGoal);
+router.get("/", goalController.getGoals);
+router.get("/stats/completion", goalController.getCompletionStats);
+router.get("/stats/weekly", goalController.getWeeklyProgress);
+router.get("/:id", goalController.getGoalById);
+router.put("/:id", goalController.updateGoal);
+router.delete("/:id", goalController.deleteGoal);
+router.post("/:id/complete", goalController.completeGoal);
 
 module.exports = router;
